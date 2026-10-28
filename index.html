@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tipos de cargas y Sistemas de almacenamiento</title>
+<style>
+:root{--red:#d71920;--blue:#0759b5;--black:#101010;--green:#087a35;--white:#fff}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:linear-gradient(135deg,var(--red) 0 25%,var(--blue) 25% 50%,var(--black) 50% 75%,var(--green) 75%);font-family:Arial,Helvetica,sans-serif;color:#fff;display:flex;flex-direction:column}
+header{text-align:center;padding:18px 12px 10px;text-shadow:2px 3px 3px #000}
+h1{font-size:clamp(1.7rem,4vw,2.8rem);margin:0 0 8px;font-weight:900}
+.subtitle{font-size:clamp(1rem,2vw,1.2rem);font-weight:bold}
+main{width:min(1000px,96%);margin:12px auto 24px;flex:1}
+.hud{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.stat{background:#101010;border:3px solid #fff;border-radius:12px;text-align:center;padding:10px 5px;font-weight:900;box-shadow:0 4px 0 #000}
+.stat span{display:block;font-size:clamp(1.25rem,3vw,2rem);color:#ffeb3b;margin-top:4px}
+.progress-wrap{height:15px;background:#111;border:2px solid white;border-radius:20px;overflow:hidden;margin-bottom:15px}
+#progress{height:100%;width:0;background:#5cff6b;transition:width .2s}
+.card{background:#101010ed;border:4px solid #fff;border-radius:20px;padding:clamp(14px,3vw,28px);box-shadow:0 10px 0 #000;text-align:center}
+.question-meta{font-weight:900;color:#ffeb3b;font-size:1.05rem;margin-bottom:8px}
+#question{font-size:clamp(1.35rem,3vw,2.15rem);line-height:1.25;font-weight:900;margin:10px auto 15px}
+#questionImage{width:min(230px,60vw);height:150px;object-fit:contain;background:#fff;border:4px solid #fff;border-radius:14px;margin:0 auto 15px;display:block}
+.answers{display:grid;grid-template-columns:1fr;gap:11px}
+.answer{border:3px solid #fff;border-radius:12px;color:#fff;font-size:clamp(1.1rem,2.5vw,1.45rem);font-weight:900;padding:15px 12px;cursor:pointer;min-height:60px;box-shadow:0 4px 0 #000;transition:transform .1s,filter .1s}
+
+/*.answer:nth-child(4n+1){background:var(--red)}*/
+/*.answer:nth-child(4n+2){background:var(--blue)}*/
+/*.answer:nth-child(4n+3){background:var(--green)}*/
+
+.answer:hover:not(:disabled){filter:brightness(1.2);transform:scale(1.015)}
+.answer:focus-visible{outline:4px solid #ffeb3b;outline-offset:3px}
+.answer:disabled{cursor:default;opacity:.85}
+#feedback{min-height:30px;font-size:1.15rem;font-weight:900;margin-top:14px}
+#startBtn{display:block;margin:15px auto 0;background:#ffeb3b;color:#111;border:3px solid #fff;border-radius:12px;padding:13px 24px;font-size:1.2rem;font-weight:900;cursor:pointer}
+footer{text-align:center;background:#000;color:#fff;padding:16px 8px;font-size:clamp(.85rem,2vw,1.05rem);font-weight:900;letter-spacing:.5px;border-top:3px solid #fff}
+#finalOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000;z-index:99999;padding:20px}
+#finalGrade{font-size:clamp(2.5rem,8vw,6rem);font-weight:1000;color:#fff;text-align:center;text-transform:uppercase;letter-spacing:1px;text-shadow:4px 4px 0 #d71920,-3px -3px 0 #0759b5}
+@media(min-width:720px){.answers{grid-template-columns:1fr 1fr 1fr}.answer{min-height:125px;display:flex;align-items:center;justify-content:center}}
+@media(max-width:500px){.hud{grid-template-columns:repeat(2,1fr)}.card{padding:14px}.answer{min-height:55px}}
+
+#finalGrade {
+    white-space: pre-line;
+}
+
+
+/* PRESENTACIÓN INICIAL DE LA INSIGNIA */
+#insigniaIntro {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #000;
+  animation: ocultarInsignia 1s linear forwards;
+}
+
+#insigniaIntro img {
+  display: block;
+  width: min(28vw, 240px);
+  height: auto;
+  max-height: 65vh;
+  object-fit: contain;
+  transform: scale(.08);
+  animation: zoomInsignia 1s cubic-bezier(.15,.65,.25,1) forwards;
+}
+
+@keyframes zoomInsignia {
+  0% {
+    transform: scale(.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(8);
+    opacity: 1;
+  }
+}
+
+@keyframes ocultarInsignia {
+  0%, 94% {
+    opacity: 1;
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  #insigniaIntro img {
+    animation: none;
+    transform: scale(1);
+  }
+
+  #insigniaIntro {
+    animation: none;
+    display: none;
+  }
+}
+
+
+/* X ROJA CON EFECTO ZOOM */
+#errorZoom {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 200000;
+  transform: translate(-50%, -50%) scale(0);
+  color: #ff0000;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(150px, 35vw, 350px);
+  font-weight: 1000;
+  line-height: 1;
+  text-shadow: 4px 4px 0 #000;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+#errorZoom.mostrar {
+  visibility: visible;
+  animation: zoomXError 0.3s ease-out forwards;
+}
+
+@keyframes zoomXError {
+  0% {
+    transform: translate(-50%, -50%) scale(0.1);
+    opacity: 0;
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
+
+/* CHECK AZUL CON EFECTO ZOOM */
+#correctoZoom {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 200001;
+  transform: translate(-50%, -50%) scale(0);
+  color: #008cff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(150px, 35vw, 350px);
+  font-weight: 1000;
+  line-height: 1;
+  text-shadow: 4px 4px 0 #000;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+#correctoZoom.mostrar {
+  visibility: visible;
+  animation: zoomCheckAzul 0.3s ease-out forwards;
+}
+
+@keyframes zoomCheckAzul {
+  0% {
+    transform: translate(-50%, -50%) scale(0.1);
+    opacity: 0;
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
+
+#resultadoFinal {
+    /* Fondo y borde */
+    background: #ffffff;
+    border: 6px solid #ff0000;
+    border-radius: 24px;
+
+    /* Tamaño del recuadro */
+    width: min(850px, 95vw);
+    min-height: 300px;
+    padding: 45px 30px;
+
+    /* Texto */
+    color: #000000;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 1000;
+    line-height: 1.5;
+    text-align: center;
+    white-space: pre-line;
+
+    /* Centrado y dimensiones */
+    margin: 20px auto;
+    box-sizing: border-box;
+
+    /* Reflejo luminoso tipo LED amarillo */
+    box-shadow:
+        0 0 10px #ffff00,
+        0 0 25px #ffff00,
+        0 0 45px #ffeb3b,
+        0 0 70px rgba(255, 235, 59, 0.9),
+        inset 0 0 18px rgba(255, 235, 59, 0.45);
+
+    /* Borde luminoso adicional */
+    outline: 3px solid #ffff00;
+    outline-offset: 5px;
+}
+
+
+/* Título de la nota */
+#resultadoFinal .tituloNota {
+    color: #000000;
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 1000;
+    line-height: 1.2;
+    margin-bottom: 25px;
+}
+
+/* Calificación mucho más grande */
+#resultadoFinal .valorNota {
+    color: #000000;
+    font-size: clamp(5rem, 15vw, 11rem);
+    font-weight: 1000;
+    line-height: 1;
+    margin-top: 10px;
+
+    /* Efecto luminoso amarillo sobre la nota */
+    text-shadow:
+        0 0 5px #ffff00,
+        0 0 15px #ffeb3b,
+        0 0 30px #ffd700;
+}
+
+
+
+</style>
+</head>
+<body>
+<header>
+
+	<!-- MENSAJE EMERGENTE INICIAL: INSIGNIA INSUCO -->
+	<div id="insigniaIntro" aria-label="Insignia INSUCO">
+	  <img
+	    src="INSIGNIA_INSUCO.jpg"
+	    alt="Insignia del Instituto Superior de Comercio de Talca">
+	</div>
+
+
+	<h1>TIPOS DE CARGAS Y SISTEMAS DE ALMACENAMIENTO</h1>
+	<div class="subtitle">Módulo: Operaciones de Almacenamiento</div>
+</header>
+
+<main>
+	<section class="hud" aria-label="Marcador">
+		<div class="stat">PREGUNTA<span id="counter">0 / 40</span></div>
+		<div class="stat">TIEMPO<span id="timer">150 s</span></div>
+		<div class="stat">CORRECTAS<span id="correct">0</span></div>
+		<div class="stat">ERRADAS<span id="wrong">0</span></div>
+	</section>
+
+	<div class="progress-wrap"><div id="progress"></div></div>
+
+	<section class="card">
+
+		<div class="question-meta" id="category">PRESIONA INICIAR PARA COMENZAR</div>
+			<img id="questionImage" alt="Imagen ilustrativa de la pregunta" src="CARA_FELIZ.jpg">
+
+		<div id="question"><h3>Clasifica cargas y sistemas de almacenamiento antes que termine el tiempo</h3></div>
+		<div class="answers" id="answers"></div>
+		<div id="feedback" aria-live="polite"></div>
+		<button id="startBtn" type="button">▶ INICIAR JUEGO</button>
+	</section>
+</main>
+
+<footer>DERECHOS DE AUTOR | PROFESOR JOSÉ VEGA HERRERA (2026)</footer>
+
+<div id="finalOverlay" role="dialog" aria-modal="true" aria-label="Nota final"><div id="resultadoFinal">NOTA FINAL: 1,0</div></div>
+
+
+<!-- MENSAJE EMERGENTE DE RESPUESTA INCORRECTA -->
+<div id="errorZoom">❌</div>
+
+
+<!-- MENSAJE EMERGENTE DE RESPUESTA CORRECTA -->
+<div id="correctoZoom">✔️</div>
+
+
+<script>
+"use strict";
+
+// 40 preguntas
+const questions = [
+
+//pregunta 01-05
+{c:"Según el volumen",q:"¿Qué carga se puede coger con los dedos de las manos, como bolígrafos o barras de pan?",a:["Cargas pesadas","Cargas voluminosas","Cargas pequeñas"],k:2,i:"✏️"},
+{c:"Según el volumen",q:"¿Qué tipo de carga puede incluir garrafas de diez litros o cajas de leche manipulables con las manos?",a:["Cargas de volumen excepcional","Cargas medianas","Cargas frágiles"],k:1,i:"🧃"},
+{c:"Según el volumen",q:"¿Cómo se llama la mercadería cuya carga se prepara sobre paletas?",a:["Carga sencilla","Carga paletizada","Carga frágil"],k:1,i:"🪵"},
+{c:"Según el volumen",q:"¿Qué carga se parece a la paletizada, pero por su volumen normalmente no se puede apilar?",a:["Carga voluminosa","Carga pequeña","Carga ligera"],k:0,i:"🧊"},
+{c:"Según el volumen",q:"¿Qué carga necesita grúas elevadoras o grúas puente, como vigas de hierro?",a:["Carga mediana","Carga de dimensiones especiales","Carga pequeña"],k:1,i:"🏗️"},
+
+//pregunta 06-10
+{c:"Según el volumen",q:"¿Qué carga puede requerir transporte especial por el gran volumen de una unidad, como un contenedor?",a:["Carga frágil","Carga ligera","Carga muy voluminosa"],k:2,i:"🚢"},
+{c:"Según el volumen",q:"¿Qué carga puede superar las medidas habituales de transporte y requerir señalización especial?",a:["Carga de volumen excepcional","Carga sencilla","Carga mediana"],k:0,i:"🚛"},
+{c:"Según el peso",q:"Según la guía, ¿hasta qué peso se consideran cargas ligeras?",a:["Hasta 5 kg","Hasta 25 kg","Más de una tonelada"],k:0,i:"⚖️"},
+{c:"Según el peso",q:"¿Entre qué pesos se sitúan las cargas medias según los apuntes?",a:["Hasta 5 kg","Entre 5 y 25 kg","Entre 25 kg y una tonelada"],k:1,i:"🛍️"},
+{c:"Según el peso",q:"¿Cuál es el rango indicado para las cargas pesadas?",a:["Hasta cinco kilogramos","Entre cinco y veinticinco kilogramos","Entre veinticinco kilogramos y una tonelada"],k:2,i:"🧱"},
+
+//pregunta 11-15
+{c:"Según el peso",q:"¿Cómo se clasifican las cargas que superan una tonelada?",a:["Ligeras","Pequeñas","Muy pesadas"],k:2,i:"🏋️"},
+{c:"Forma de apilarlas",q:"¿Qué cargas tienen dimensiones normales y se depositan individualmente, sin apilar unas encima de otras?",a:["Cargas sencillas","Cargas apilables","Cargas por lote"],k:0,i:"🚲"},
+{c:"Forma de apilarlas",q:"¿Qué cargas se pueden colocar unas encima de otras, aunque exista un límite de apilamiento?",a:["Cargas frágiles","Cargas apilables","Cargas de volumen excepcional"],k:1,i:"🥛"},
+{c:"Según el lote",q:"¿Qué ejemplo corresponde a un lote constituido por una sola unidad de mercadería?",a:["Un frigorífico","648 botellas","30 cajas"],k:0,i:"🧊"},
+{c:"Según el lote",q:"¿Qué cantidad de unidades puede aparecer en los lotes mencionados por la guía?",a:["Solo 2 unidades","Siempre más de 100 unidades","3, 6, 12, 24 o 30 unidades"],k:2,i:"📦"},
+
+//pregunta 16-20
+{c:"Según el lote",q:"¿Cómo se clasifica una paleta de 100 baldosas de mármol según el ejemplo de la guía?",a:["Lote de una sola unidad","Lote de hasta cien unidades","Lote de más de cien unidades"],k:1,i:"🪨"},
+{c:"Según el lote",q:"Una paleta contiene 648 botellas de aceite. ¿Qué tipo de lote es?",a:["Lote por una unidad","Lote de 3 a 30 unidades","Lote formado por más de cien unidades"],k:2,i:"🫙"},
+{c:"Según la fragilidad",q:"¿Qué cargas pueden soportar mucho peso encima, como losas de mármol o vigas de hierro?",a:["Resistentes","Frágiles","Ligeras"],k:0,i:"🧱"},
+{c:"Según la fragilidad",q:"¿Qué cargas soportan peso encima, pero con limitaciones?",a:["Cargas resistentes","Cargas de volumen excepcional","Cargas ligeras"],k:2,i:"🥛"},
+{c:"Según la fragilidad",q:"¿Qué tipo de carga no soporta peso encima y debe colocarse individualmente?",a:["Resistente","Frágil","Apilable"],k:1,i:"🥚"},
+
+//pregunta 21-25
+{c:"Almacenamiento",q:"¿Qué es almacenar mercaderías?",a:["Dejar las mercaderías en cualquier pasillo","Transportar siempre fuera de la bodega","Depositar las mercaderías en el lugar idóneo de la bodega"],k:2,i:"🏬"},
+{c:"Almacenamiento",q:"¿Qué se busca al aprovechar al máximo el volumen de la bodega?",a:["Almacenar menos mercaderías","Almacenar más mercaderías y facilitar su acceso","Bloquear los pasillos"],k:1,i:"📦"},
+{c:"Ubicación aleatoria",q:"¿En qué consiste la ubicación aleatoria?",a:["Cada producto tiene siempre un espacio reservado","Depositar mercancía en el primer espacio libre disponible","Guardar todo por color"],k:1,i:"🗃️"},
+{c:"Ubicación aleatoria",q:"¿Qué ventaja ofrece la ubicación aleatoria?",a:["Aprovecha espacios disponibles","Cada producto tiene un sitio exclusivo permanente","Elimina la necesidad de registros"],k:0,i:"📦"},
+{c:"Ubicación aleatoria",q:"¿Qué problema puede presentar la ubicación aleatoria si no se registran los lugares?",a:["La mercaderías pesan menos","Puede ser difícil localizarla después","No permite almacenar productos"],k:1,i:"🔎"},
+
+//pregunta 26-30
+{c:"Ubicación estática",q:"¿Qué caracteriza a la ubicación estática?",a:["Los productos se dejan en cualquier lugar sin registrar","Se almacenan solo productos frágiles","Cada mercadería tiene un espacio reservado"],k:2,i:"🗄️"},
+{c:"Ubicación estática",q:"¿Cuál es una ventaja de la ubicación estática?",a:["Se pierde siempre el espacio","Se puede localizar la mercadería con facilidad","No necesita sectores"],k:1,i:"📍"},
+{c:"Ubicación estática",q:"¿Cuál es una desventaja de la ubicación estática?",a:["El espacio reservado no puede ser ocupado por otra mercadería","Es imposible localizar los productos","No se puede señalizar"],k:0,i:"🏷️"},
+{c:"Ubicación sectorial",q:"En la ubicación sectorial, ¿cómo se divide la bodega?",a:["En sectores para familias de artículos","En un solo espacio sin orden","Por el color del suelo solamente"],k:0,i:"🧭"},
+{c:"Ubicación sectorial",q:"¿Qué se asigna a los sectores de una bodega con ubicación sectorial?",a:["Solo mercancías excepcionales","Un vehículo de transporte","Una o varias familias de artículos"],k:2,i:"🗂️"},
+
+//pregunta 31-35
+{c:"Localización",q:"Según el ejemplo de la guía, ¿qué indican los dos primeros dígitos del código 09-01-02?",a:["El nivel de la estantería","El pasillo","La zona del pasillo"],k:1,i:"🔢"},
+{c:"Localización",q:"En el código 09-01-02, ¿qué representa el número 01?",a:["La zona del pasillo","El pasillo","El nivel de la estantería"],k:0,i:"📍"},
+{c:"Localización",q:"En el código 09-01-02, ¿qué representan los dos últimos dígitos?",a:["El número de unidades","El nivel de la estantería","El peso"],k:1,i:"🏷️"},
+{c:"Ejemplos de carga",q:"Según la guía, ¿qué ejemplo representa una carga frágil?",a:["Vigas de hierro","Losas de mármol","Vasos de cristal"],k:2,i:"🥂"},
+{c:"Ejemplos de carga",q:"¿Cuál es un ejemplo de carga de dimensiones especiales indicado en los apuntes?",a:["Refrigeradores industriales","Planchas metálicas o vigas de hierro","Muchos Packs de Cuadernos"],k:1,i:"🏗️"},
+
+//pregunta 36-40
+{c:"Ejemplos de carga",q:"¿Cuál de estos ejemplos aparece como carga pequeña?",a:["Un contenedor marítimo","Un bolígrafo","Una viga de puente"],k:1,i:"🖊️"},
+{c:"Ejemplos de carga",q:"¿Qué ejemplo se menciona como carga mediana?",a:["Un tren completo","Una viga de puente","Una caja de leche"],k:2,i:"🥛"},
+{c:"Ejemplos de carga",q:"¿Qué producto se menciona como ejemplo de carga sencilla?",a:["Bicicletas o aspiradoras","Vigas apiladas en altura","Contenedores preparados para barcos"],k:0,i:"🚲"},
+{c:"Manipulación",q:"¿Qué factores deben considerarse para decidir cómo manipular una mercadería?",a:["Solo su color y procedencia","Estado físico, propiedades y cantidad","Solo el nombre del proveedor"],k:1,i:"📋"},
+{c:"Manipulación",q:"¿Cuál es el objetivo de elegir procedimientos adecuados de manipulación?",a:["Aumentar costes y tiempos","Mejorar la eficacia y disminuir costos de manipulación","Evitar identificar las mercaderías"],k:1,i:"📦"}
+];
+
+const $ = id => document.getElementById(id);
+let gameQuestions=[], index=0, correct=0, wrong=0, seconds=150, interval=null, locked=true, answered=false;
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function svgImage(emoji){
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="190" viewBox="0 0 320 190"><rect width="320" height="190" rx="18" fill="#f4f7fb"/><circle cx="160" cy="95" r="68" fill="#dbeafe"/><text x="160" y="119" text-anchor="middle" font-size="90">${emoji}</text><path d="M30 160h260" stroke="#111" stroke-width="4" stroke-linecap="round"/></svg>`;
+  return "data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(svg);
+}
+
+function startGame(){
+  clearInterval(interval);
+  gameQuestions=shuffle(questions.map(q=>({...q,a:shuffle(q.a.map((text,oldIndex)=>({text,correct:oldIndex===q.k})))}))).slice(0,40);
+
+  index=0;correct=0;wrong=0;seconds=150;locked=false;answered=false;
+  $("startBtn").style.display="none";
+  $("finalOverlay").style.display="none";
+  $("feedback").textContent="";
+  updateHud();
+  showQuestion();
+  interval=setInterval(()=>{
+    if(locked)return;
+    seconds--;
+    $("timer").textContent=seconds+" s";
+    if(seconds<=0)finishGame();
+  },1000);
+}
+
+function updateHud(){
+  $("counter").textContent=Math.min(index+1,40)+" / 40";
+  $("correct").textContent=correct;
+  $("wrong").textContent=wrong;
+  $("progress").style.width=(index/40*100)+"%";
+  $("timer").textContent=seconds+" s";
+}
+
+
+function colorAleatorio() {
+    const colores = [
+        { fondo: "#d71920", texto: "#ffffff" }, // Rojo y blanco
+        { fondo: "#0759b5", texto: "#ffffff" }, // Azul y blanco
+        { fondo: "orange", texto: "#000000" }, // Naranja y negro
+        { fondo: "#087a35", texto: "#ffffff" }, // Verde y blanco
+        { fondo: "yellow", texto: "#000000" }  // Amarillo y negro
+    ];
+
+    return colores[Math.floor(Math.random() * colores.length)];
+}
+
+
+function showQuestion(){
+  if(locked)return;
+  if(index>=40){finishGame();return;}
+  answered=false;
+  const q=gameQuestions[index];
+  $("category").textContent="PREGUNTA "+(index+1)+" · "+q.c.toUpperCase();
+  $("question").textContent=q.q;
+  $("questionImage").src=svgImage(q.i);
+  $("questionImage").alt="Ilustración: "+q.i;
+  const box=$("answers");
+  box.innerHTML="";
+
+const coloresPregunta = shuffle([
+    { fondo: "#d71920", texto: "#ffffff" }, // Rojo, letra blanca
+    { fondo: "#0759b5", texto: "#ffffff" }, // Azul, letra blanca
+    { fondo: "orange", texto: "#000000" },  // Naranja, letra negra
+    { fondo: "#087a35", texto: "#ffffff" }, // Verde, letra blanca
+    { fondo: "yellow", texto: "#000000" }   // Amarillo, letra negra
+]);
+
+q.a.forEach((opt, i) => {
+    const b = document.createElement("button");
+
+    b.className = "answer";
+    b.type = "button";
+    b.textContent = opt.text;
+
+    // Usar un color diferente para cada alternativa
+    const color = coloresPregunta[i];
+
+    b.style.backgroundColor = color.fondo;
+    b.style.color = color.texto;
+    b.style.fontWeight = "900";
+
+    b.addEventListener("click", () => chooseAnswer(i));
+
+    box.appendChild(b);
+});
+
+
+  $("feedback").textContent="";
+  updateHud();
+}
+
+function chooseAnswer(choice){
+  if(locked||answered)return;
+  answered=true;
+  const q=gameQuestions[index], selected=q.a[choice];
+  [...$("answers").querySelectorAll("button")].forEach((b,i)=>{
+    b.disabled=true;
+    if(q.a[i].correct){
+      b.style.outline="5px solid #5cff6b";
+      b.style.outlineOffset="-5px";
+    }
+  });
+  if(selected.correct){
+    	correct++;
+
+	$("feedback").textContent = "";
+
+	const checkAzul = $("correctoZoom");
+
+	// Reiniciar la animación en cada respuesta correcta
+	checkAzul.classList.remove("mostrar");
+	void checkAzul.offsetWidth;
+	checkAzul.classList.add("mostrar");
+
+	setTimeout(() => {
+	  checkAzul.classList.remove("mostrar");
+		}, 300);
+
+
+  }else{
+    	wrong++;
+
+	$("feedback").textContent = "";
+
+	const errorX = $("errorZoom");
+
+	// Reiniciar la animación para cada respuesta incorrecta
+	errorX.classList.remove("mostrar");
+	void errorX.offsetWidth;
+	errorX.classList.add("mostrar");
+
+	setTimeout(() => {
+	  errorX.classList.remove("mostrar");
+		}, 300);
+
+  }
+
+  $("correct").textContent=correct;
+  $("wrong").textContent=wrong;
+  index++;
+  $("progress").style.width=(index/40*100)+"%";
+  if(index>=40){
+    setTimeout(finishGame,350);
+  }else{
+    setTimeout(()=>{if(!locked)showQuestion();},450);
+  }
+}
+
+function finalGrade(n,total){
+  const pct=total?n/total*100:0;
+
+  //let grade=pct<60 ? 1+(pct/60)*3 : 4+((pct-60)/40)*3;
+  let grade=pct<60 ? 1+(pct/60)*3 : 4+((pct-60)/30)*3;
+
+  return Math.max(1,Math.min(7,grade)).toFixed(1).replace(".",",");
+}
+
+
+function finishGame() {
+    if (locked) return;
+
+    locked = true;
+    clearInterval(interval);
+    interval = null;
+
+    $("progress").style.width = (index / 40 * 100) + "%";
+
+    // Calcular y mostrar la nota final en el recuadro correcto
+    $("resultadoFinal").innerHTML =
+    '<div class="tituloNota">NOTA FINAL</div>' +
+    '<div class="valorNota">' + finalGrade(correct, 40) + '</div>';
+
+
+    // Mostrar la pantalla final
+    $("finalOverlay").style.display = "flex";
+
+    // Bloquear las alternativas y ocultar los controles
+    $("answers").innerHTML = "";
+    $("feedback").textContent = "";
+    $("startBtn").style.display = "none";
+}
+
+
+$("startBtn").addEventListener("click",startGame);
+</script>
+</body>
+</html>
